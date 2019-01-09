@@ -1,0 +1,1 @@
+cmd_/home/user1/tools/iomem/hello.ko := /home/user1/disk2/buildroot-2018.11.1/output/host/bin/aarch64-linux-ld -EL -r  -maarch64linux -T ./scripts/module-common.lds -T ./arch/arm64/kernel/module.lds --build-id  -o /home/user1/tools/iomem/hello.ko /home/user1/tools/iomem/hello.o /home/user1/tools/iomem/hello.mod.o ;  true

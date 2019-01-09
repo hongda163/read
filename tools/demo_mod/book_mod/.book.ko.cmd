@@ -1,0 +1,1 @@
+cmd_/home/user1/tools/demo_mod/book_mod/book.ko := ld -r -m elf_x86_64 -z max-page-size=0x200000 -T ./scripts/module-common.lds --build-id  -o /home/user1/tools/demo_mod/book_mod/book.ko /home/user1/tools/demo_mod/book_mod/book.o /home/user1/tools/demo_mod/book_mod/book.mod.o ;  true

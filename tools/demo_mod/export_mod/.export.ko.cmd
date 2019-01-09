@@ -1,0 +1,1 @@
+cmd_/home/user1/tools/demo_mod/export_mod/export.ko := ld -r -m elf_x86_64 -z max-page-size=0x200000 -T ./scripts/module-common.lds --build-id  -o /home/user1/tools/demo_mod/export_mod/export.ko /home/user1/tools/demo_mod/export_mod/export.o /home/user1/tools/demo_mod/export_mod/export.mod.o ;  true

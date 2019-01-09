@@ -1,0 +1,210 @@
+﻿%%%%%%%%%%%%%%%leds.html%%%%%%%%%%%%%%%%%%%%%%%
+<head>
+<meta http-equiv="Content-Language" content="zh-cn">
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312">
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<title>LED灯测试</title>
+<!--
+body {
+background-color: #FFFFFF;
+);
+}
+-->
+</style></head>
+<body>
+<h1 align="left">LED测试</h1>
+<form method="get" action="testleds.cgi" name="LED-TEST">
+<div align="left">
+<table border="0" width="100%">
+<tr>
+<td width="80px">
+<b> LED灯:</b>
+</td>
+<td width="80px">
+LED1<input type="checkbox" name="cb_led" value="led1" />
+</td>
+<td width="80px">
+LED2<input type="checkbox" name="cb_led" value="led2" />
+</td>
+<td width="80px">
+LED3<input type="checkbox" name="cb_led" value="led3" />
+</td>
+<td width="80px">
+LED4<input type="checkbox" name="cb_led" value="led4" />
+</td>
+<td></td>
+</tr>
+<!--...-->
+<tr>
+<td width="80px">
+<input type="submit" value="确定" name="submit">
+</td>
+<td></td>
+</tr>
+</table>
+</div>
+</form>
+</body>
+</html>
+%%%%%%%%%%%%%%%leds.html %%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%testleds.cgi%%%%%%%%%%%%%%%%%%%%%%% #!/bin/sh
+LED1_ON=0
+LED2_ON=0
+LED3_ON=0
+LED4_ON=0
+SPEED=1
+case $QUERY_STRING in
+*cb_led=led1*)
+LED1_ON=1
+;;
+esac
+case $QUERY_STRING in
+*cb_led=led2*)
+LED2_ON=1
+;;
+esac
+case $QUERY_STRING in
+*cb_led=led3*)
+LED3_ON=1
+;;
+esac
+case $QUERY_STRING in
+*cb_led=led4*)
+LED4_ON=1
+;;
+esac
+/bin/echo $LED1_ON $LED2_ON $LED3_ON $LED4_ON > /tmp/led-control
+/bin/echo "Content-type: text/html; charset=gb2312"
+/bin/echo
+#/bin/echo $QUERY_STRING "STRING"
+/bin/cat led-result.template
+exit 0
+%%%%%%%%%%%%%%%testleds.cgi%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%led-result.template%%%%%%%%%%%%%%%%%%%%%%% <html>
+<head>
+<title>LED测试结果</title>
+<style type="text/css">
+<!--
+body {
+background-color: #666666;
+}
+-->
+</style>
+</head>
+<body>
+<p>LED设置已经提交</p>
+<p><a href="leds.html">返回上一页</a></p>
+</body>
+%%%%%%%%%%%%%%%led-result.template%%%%%%%%%%%%%%%%%%%%%%% %%%%%%%%%%%%%%%ledwebqidong%%%%%%%%%%%%%%%%%%%%%%%
+#!/bin/sh
+base=/sbin/ledweb
+# See how we were called.
+case "$1" in
+start)
+$base &
+;;
+stop)
+pid=`/bin/pidof $base`
+if [ -n "$pid" ]; then
+kill -9 $pid
+fi
+;;
+esac
+exit 0
+%%%%%%%%%%%%%%%ledwebqidong%%%%%%%%%%%%%%%%%%%%%%% %%%%%%%%%%%%%%%ledtest.c%%%%%%%%%%%%%%%%%%%%%%%
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/select.h>
+#include <sys/time.h>
+#include<string.h>
+static int led_fd;
+static int leds[4] = {0};
+static void lightleds(void)
+{
+for(i=0;i<4;i++)
+{
+ioctl(led_fd, leds[i], i);
+}
+}
+int main(void)
+{
+int led_control_pipe;
+int null_writer_fd; // for read endpoint not blocking when control process exit led_fd = open("/dev/EmbedSky-leds", 0);
+if (led_fd < 0) {
+perror("open device leds");
+exit(1);
+}
+unlink("/tmp/led-control");
+mkfifo("/tmp/led-control", 0666);
+led_control_pipe = open("/tmp/led-control", O_RDONLY | O_NONBLOCK); if (led_control_pipe < 0) {
+perror("open control pipe for read");
+exit(1);
+}
+null_writer_fd = open("/tmp/led-control", O_WRONL Y | O_NONBLOCK); if (null_writer_fd < 0) {
+perror("open control pipe for write");
+exit(1);
+}
+for (;;) {
+fd_set rds;
+int ret;
+struct timeval step;
+step.tv_sec = 0;
+step.tv_usec =0.125*1000000L;
+FD_ZERO(&rds);
+FD_SET(led_control_pipe, &rds);
+ret = select(led_control_pipe + 1, &rds, NULL, NULL, &step);
+if (ret < 0) {
+perror("select");
+exit(1);
+}
+if (ret == 0) {
+lightleds();
+}
+else if (FD_ISSET(led_control_pipe, &rds)) {
+static char buffer[200];
+for (;;) {
+char c;
+int len = strlen(buffer);
+if (len >= sizeof buffer - 1) {
+memset(buffer, 0, sizeof buffer);
+break;
+}
+if (read(led_control_pipe, &c, 1) != 1) {
+break;
+}
+if (c == 'r') {
+continue;
+}
+if (c == 'n') {
+int tmp_leds[4];
+if (sscanf(buffer,"%d%d%d%d", &tmp_leds[0], &tmp_leds[1],&tmp_leds[2],&tmp_leds[3]) == 4) {
+leds[0] = tmp_leds[0];
+leds[1] = tmp_leds[1];
+leds[2] = tmp_leds[2];
+leds[3] = tmp_leds[3];
+}
+int j;
+for(j=0;j<4;j++)
+{
+if(leds[j])
+fprintf(stderr,"led%d is onn",j+1);
+else
+fprintf(stderr, "led%d is offn",j+1);
+}
+memset(buffer, 0, sizeof buffer);
+break;
+}
+buffer[len] = c;
+}
+}
+}
+close(led_fd);
+return 0;
+}
+%%%%%%%%%%%%%%%ledtest.c%%%%%%%%%%%%%%%%%%%%%%%

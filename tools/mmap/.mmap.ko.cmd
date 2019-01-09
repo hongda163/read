@@ -1,0 +1,1 @@
+cmd_/home/user1/tools/mmap/mmap.ko := /home/user1/disk2/buildroot-2018.11.1/output/host/bin/aarch64-linux-ld -EL -r  -maarch64linux -T ./scripts/module-common.lds -T ./arch/arm64/kernel/module.lds --build-id  -o /home/user1/tools/mmap/mmap.ko /home/user1/tools/mmap/mmap.o /home/user1/tools/mmap/mmap.mod.o ;  true
